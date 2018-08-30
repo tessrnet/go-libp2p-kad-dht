@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	proto "github.com/gogo/protobuf/proto"
@@ -302,11 +301,6 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	}
 	log.SetTag(ctx, "key", c)
 
-	// debug logging niceness.
-	reqDesc := fmt.Sprintf("%s handleGetProviders(%s, %s): ", dht.self, p, c)
-	log.Debugf("%s begin", reqDesc)
-	defer log.Debugf("%s end", reqDesc)
-
 	// check if we have this value, to add ourselves as provider.
 	has, err := dht.datastore.Has(convertToDsKey(c.Bytes()))
 	if err != nil && err != ds.ErrNotFound {
@@ -318,13 +312,13 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	providers := dht.providers.GetProviders(ctx, c)
 	if has {
 		providers = append(providers, dht.self)
-		log.Debugf("%s have the value. added self as provider", reqDesc)
+		log.LogKV(ctx, "have", true)
 	}
 
 	if providers != nil && len(providers) > 0 {
 		infos := pstore.PeerInfos(dht.peerstore, providers)
 		resp.ProviderPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
-		log.Debugf("%s have %d providers: %s", reqDesc, len(providers), infos)
+		log.LogKV(ctx, "providers", infos)
 	}
 
 	// Also send closer peers.
@@ -332,7 +326,7 @@ func (dht *IpfsDHT) handleGetProviders(ctx context.Context, p peer.ID, pmes *pb.
 	if closer != nil {
 		infos := pstore.PeerInfos(dht.peerstore, closer)
 		resp.CloserPeers = pb.PeerInfosToPBPeers(dht.host.Network(), infos)
-		log.Debugf("%s have %d closer peers: %s", reqDesc, len(closer), infos)
+		log.LogKV(ctx, "closer peers", infos)
 	}
 
 	return resp, nil
