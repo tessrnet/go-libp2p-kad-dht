@@ -36,13 +36,10 @@ var asyncQueryBuffer = 10
 // PutValue adds value corresponding to given Key.
 // This is the top level "Store" operation of the DHT
 func (dht *IpfsDHT) PutValue(ctx context.Context, key string, value []byte, opts ...ropts.Option) (err error) {
-	eip := log.EventBegin(ctx, "PutValue")
+	ctx = log.Start(ctx, "PutValue")
+	log.SetTag(ctx, "key", loggableKey(key))
 	defer func() {
-		eip.Append(loggableKey(key))
-		if err != nil {
-			eip.SetError(err)
-		}
-		eip.Done()
+		log.FinishWithErr(ctx, err)
 	}()
 	log.Debugf("PutValue %s", key)
 
@@ -111,13 +108,10 @@ type RecvdVal struct {
 
 // GetValue searches for the value corresponding to given Key.
 func (dht *IpfsDHT) GetValue(ctx context.Context, key string, opts ...ropts.Option) (_ []byte, err error) {
-	eip := log.EventBegin(ctx, "GetValue")
+	ctx = log.Start(ctx, "GetValue")
+	log.SetTag(ctx, "key", loggableKey(key))
 	defer func() {
-		eip.Append(loggableKey(key))
-		if err != nil {
-			eip.SetError(err)
-		}
-		eip.Done()
+		log.FinishWithErr(ctx, err)
 	}()
 
 	// apply defaultQuorum if relevant
@@ -251,14 +245,14 @@ func (dht *IpfsDHT) SearchValue(ctx context.Context, key string, opts ...ropts.O
 
 // GetValues gets nvals values corresponding to the given key.
 func (dht *IpfsDHT) GetValues(ctx context.Context, key string, nvals int) (_ []RecvdVal, err error) {
-	eip := log.EventBegin(ctx, "GetValues")
-
-	eip.Append(loggableKey(key))
-	defer eip.Done()
+	ctx = log.Start(ctx, "GetValues")
+	log.SetTag(ctx, "key", loggableKey(key))
+	defer func() {
+		log.FinishWithErr(ctx, err)
+	}()
 
 	valCh, err := dht.getValues(ctx, key, nvals)
 	if err != nil {
-		eip.SetError(err)
 		return nil, err
 	}
 
